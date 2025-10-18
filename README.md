@@ -1,4 +1,4 @@
-# Template
+# LyriLearn
 
 <!-- Add a banner here like: https://github.com/StephanAkkerman/fintwit-bot/blob/main/img/logo/fintwit-banner.png -->
 
@@ -12,7 +12,7 @@
 
 ## Introduction
 
-In this section you can provide a brief introduction to the project. You can also include a brief description of the project and its features.
+If you listen to music from different countries, you might find it challenging to understand the lyrics in foreign languages. LyriLearn is a Python application that helps you learn foreign languages through song lyrics. It fetches synchronized lyrics for a given song, translates them into your target language, and displays them in sync with the music playback. This way, you can enjoy your favorite songs while improving your language skills!
 
 ## Table of Contents 🗂
 

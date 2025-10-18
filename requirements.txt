@@ -1,0 +1,6 @@
+syncedlyrics
+googletrans
+pydantic
+fastapi
+uvicorn
+stanza
