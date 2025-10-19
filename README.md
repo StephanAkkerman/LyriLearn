@@ -68,7 +68,7 @@ Then open your browser and navigate to [http://akkerman.ai/LyriLearn/](http://ak
 If you use this project in your research, please cite as follows:
 
 ```bibtex
-@misc{project_name,
+@misc{LyriLearn2025,
   author  = {Stephan Akkerman},
   title   = {LyriLearn},
   year    = {2025},
