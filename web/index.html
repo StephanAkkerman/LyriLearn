@@ -92,40 +92,75 @@ document.getElementById('qform').addEventListener('submit', async (e) => {
     alert(`Request failed: ${err.message}`);
   }
 });
+function escapeHtml(s){return s.replace(/[&<>"']/g, m=>({ '&':'&nbsp;&','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]));}
 
 function renderPairsAndLegend(data) {
   pairs.innerHTML = '';
   const tagsSeen = new Set();
 
-  for (const ln of data.lines) {
-    // Left cell (L2) with per-token coloring
+  data.lines.forEach((ln, lineIdx) => {
+    // Build lookup: for each token index, which group ids it belongs to
+    const gIdsL2 = new Map(); const gIdsL1 = new Map();
+    (ln.groups || []).forEach((g, gi) => {
+      const gid = `${lineIdx}-${gi}`;
+      (g.l2 || []).forEach(i => {
+        const arr = gIdsL2.get(i) || []; arr.push(gid); gIdsL2.set(i, arr);
+      });
+      (g.l1 || []).forEach(j => {
+        const arr = gIdsL1.get(j) || []; arr.push(gid); gIdsL1.set(j, arr);
+      });
+    });
+
+    // Left (L2) — per-token with UPOS color
     const left = document.createElement('div');
     left.className = 'cell';
     const tspan = `<span class="time">${fmtTime(ln.t)}</span> `;
-    if (ln.tokens && ln.tokens.length) {
-      const toks = ln.tokens.map(tok => {
-        const upos = (tok.upos || 'X').toUpperCase();
-        tagsSeen.add(upos);
-        const cls = `upos-${upos}`;
-        const title = `${tok.lemma||''} · ${upos}${tok.feats?`\n${tok.feats}`:''}`;
-        return `<span class="token ${cls}" title="${title}">${tok.text}</span>`;
-      }).join(' ');
-      left.innerHTML = `${tspan}${toks}`;
-    } else {
-      // Fallback: no POS — render plain line (or tokenize client-side if you prefer)
-      left.innerHTML = `${tspan}${fmt(ln.l2)}`;
-    }
+    const l2html = (ln.tokens && ln.tokens.length)
+      ? ln.tokens.map((tok, i) => {
+          const upos = (tok.upos || 'X').toUpperCase();
+          tagsSeen.add(upos);
+          const cls = `token tok upos-${upos}`;
+          const title = `${tok.lemma||''} · ${upos}${tok.feats?`\n${tok.feats}`:''}`;
+          const groups = (gIdsL2.get(i) || []).join(' ');
+          return `<span class="${cls}" title="${escapeHtml(title)}" data-side="l2" data-line="${lineIdx}" data-idx="${i}" data-g="${groups}">${escapeHtml(tok.text)}</span>`;
+        }).join(' ')
+      : escapeHtml(ln.l2 || '');
+    left.innerHTML = tspan + l2html;
 
-    // Right cell (L1)
+    // Right (L1) — tokenize spans even if no POS; color neutral
     const right = document.createElement('div');
     right.className = 'cell';
-    right.textContent = fmt(ln.l1);
+    const l1html = (ln.l1_tokens && ln.l1_tokens.length)
+      ? ln.l1_tokens.map((tok, j) => {
+          const groups = (gIdsL1.get(j) || []).join(' ');
+          return `<span class="tok" data-side="l1" data-line="${lineIdx}" data-idx="${j}" data-g="${groups}">${escapeHtml(tok)}</span>`;
+        }).join(' ')
+      : escapeHtml(ln.l1 || '');
+    right.innerHTML = l1html;
 
     pairs.appendChild(left);
     pairs.appendChild(right);
-  }
+  });
 
   buildLegend(tagsSeen);
+  wireHoverLinking();
+}
+
+// Hover linking: highlight all tokens sharing any group id with the hovered token
+function wireHoverLinking() {
+  pairs.addEventListener('mouseover', e => {
+    const el = e.target.closest('.tok');
+    if (!el) return;
+    const groups = (el.dataset.g || '').trim().split(/\s+/).filter(Boolean);
+    if (!groups.length) return;
+    document.querySelectorAll('.tok').forEach(n => {
+      const ng = (n.dataset.g || '');
+      if (groups.some(g => ng.includes(g))) n.classList.add('hl');
+    });
+  });
+  pairs.addEventListener('mouseout', () => {
+    document.querySelectorAll('.tok.hl').forEach(n => n.classList.remove('hl'));
+  });
 }
 
 function buildLegend(tagsSeen) {

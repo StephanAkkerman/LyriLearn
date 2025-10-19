@@ -56,3 +56,17 @@ def annotate_line(text: str, lang: str) -> list[dict]:
                 }
             )
     return out
+
+
+def tokenize_line(text: str, lang: str) -> list[str]:
+    """
+    Tokenize text into surface tokens using the same Stanza pipeline.
+    Keeps line as a single sentence; returns tokens in order.
+    """
+    nlp = _pipeline(lang)
+    doc = nlp(text)
+    toks: list[str] = []
+    for sent in doc.sentences:
+        for w in sent.words:
+            toks.append(w.text)
+    return toks

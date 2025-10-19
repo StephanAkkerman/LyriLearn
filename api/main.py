@@ -17,7 +17,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from googletrans import Translator
 from pydantic import BaseModel
 
-from .pos import annotate_line
+from .align import align_tokens
+from .pos import annotate_line, tokenize_line
 
 # ---------- Config ----------
 FRONTEND_ORIGIN = os.getenv("FRONTEND_ORIGIN", "*")  # e.g., https://<user>.github.io
@@ -58,7 +59,9 @@ class Line(BaseModel):
     t: float | None
     l2: str
     l1: str | None = None
-    tokens: list[dict] | None = None  # <-- add this
+    tokens: list[dict] | None = None  # L2 tokens (with POS)
+    l1_tokens: list[str] | None = None  # NEW: tokenized L1
+    groups: list[dict] | None = None  # NEW: [{"l2":[...], "l1":[...]}]
 
 
 class LyricsResponse(BaseModel):
@@ -182,16 +185,35 @@ async def translate_body(body: TranslateBody) -> dict[str, str]:
 
 @app.get("/api/lyrics-annotated", response_model=LyricsResponse)
 async def get_lyrics_annotated(
-    title: str, artist: str, lang: str, dest: str, pos: int = 1
+    title: str,
+    artist: str,
+    lang: str,
+    dest: str,
+    pos: int = 1,
+    align: int = 1,  # turn on alignment by default
 ) -> LyricsResponse:
     """
-    Lyrics + translation + optional POS.
-    We already know `lang` from the user (same as translation source).
+    Lyrics + translation + optional POS + optional alignment groups.
     """
     data = await get_lyrics_with_translation(
         title=title, artist=artist, src=lang, dest=dest
     )
-    if pos:
-        for ln in data.lines:
+
+    for ln in data.lines:
+        # L2 tokens with POS
+        if pos:
             ln.tokens = annotate_line(ln.l2, lang)
+
+        # Alignment needs tokenized L2 + L1 (surface forms)
+        if align:
+            l2_tokens = [t["text"] for t in (ln.tokens or [])] or tokenize_line(
+                ln.l2, lang
+            )
+            ln.l1_tokens = (
+                tokenize_line(ln.l1 or "", dest) if (ln.l1 and ln.l1.strip()) else []
+            )
+            if l2_tokens and ln.l1_tokens:
+                ln.groups = align_tokens(l2_tokens, ln.l1_tokens)
+            else:
+                ln.groups = []
     return data

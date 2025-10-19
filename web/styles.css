@@ -40,6 +40,9 @@
 .legend .chip { font-size:.85em; border:1px solid #ddd; border-radius:.5rem; padding:.15rem .4rem }
 .legend .chip .swatch { display:inline-block; width:.85em; height:.85em; border-radius:.2em; margin-right:.35em; vertical-align:-0.15em; }
 
+.tok { cursor: pointer; border-radius:.25rem; padding:0 .15rem }
+.tok.hl { outline: 2px solid rgba(0,0,0,.2); background: rgba(255,235,59,.25); }
+
 
 /* Optional: remove any mobile stacking you might have added earlier */
 @media (max-width: 640px) {
