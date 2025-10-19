@@ -1,7 +1,7 @@
 # LyriLearn
 
 <!-- Add a banner here like: https://github.com/StephanAkkerman/fintwit-bot/blob/main/img/logo/fintwit-banner.png -->
-
+![LyriLearn Banner](img/banner.png)
 ---
 <!-- Adjust the link of the first and second badges to your own repo -->
 <p align="center">
@@ -30,7 +30,7 @@ The image below shows a screenshot of the application in action:
 - [Contributing](#contributing)
 - [License](#license)
 
-## Key Features 🔑
+## Key Features 🔑z
 
 - Translates song lyrics into your target language.
 - Synchronizes translated lyrics with music playback, hovering over words shows their translation.
