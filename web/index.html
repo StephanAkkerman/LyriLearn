@@ -1,102 +1,117 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>LyriLearn - Minimal</title>
-<link rel="stylesheet" href="https://unpkg.com/mvp.css" />
-<style>
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
-.muted{color:#666}
-.time{font-variant-numeric:tabular-nums}
-.line{padding:.15rem 0}
-</style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>LyriLearn – Minimal</title>
+  <link rel="stylesheet" href="https://unpkg.com/mvp.css" />
+  <link rel="stylesheet" href="./styles.css" />
+  <style>
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+    .muted{color:#666}
+    .time{font-variant-numeric:tabular-nums}
+    .line{padding:.15rem 0}
+    /* Simple UPOS-based coloring */
+    .upos-NOUN{background:#e6f4ff}
+    .upos-VERB{background:#e8ffe6}
+    .upos-ADJ{background:#fff6e6}
+    .upos-ADV{background:#f3e6ff}
+    .token{padding:0 .15rem;border-radius:.25rem}
+  </style>
 </head>
 <body>
 <main>
-<header>
-<h1>LyriLearn</h1>
-<p class="muted">Dual-pane lyrics ↔ translation (backend API required)</p>
-</header>
+  <header>
+    <h1>LyriLearn</h1>
+    <p class="muted">Dual-pane lyrics ↔ translation (backend API required)</p>
+  </header>
 
+  <section>
+    <form id="qform">
+      <label>Title <input name="title" required placeholder="Dara" /></label>
+      <label>Artist <input name="artist" required placeholder="Artist Name" /></label>
+      <div class="grid">
+        <label>Source (L2) <input name="src" value="id" /></label>
+        <label>Target (L1) <input name="dest" value="en" /></label>
+      </div>
+      <label>Backend URL <input id="backend" placeholder="http://localhost:8000" /></label>
+      <label><input type="checkbox" id="pos" checked /> Include POS</label>
+      <button>Load</button>
+    </form>
+  </section>
 
-<section>
-<form id="qform">
-<label>Title <input name="title" required placeholder="Dara" /></label>
-<label>Artist <input name="artist" required placeholder="Artist Name" /></label>
-<div class="grid">
-<label>Source (L2) <input name="src" value="id" /></label>
-<label>Target (L1) <input name="dest" value="en" /></label>
-</div>
-<label>Backend URL <input id="backend" placeholder="http://localhost:8000" /></label>
-<button>Load</button>
-</form>
+  <section id="panes" hidden>
+  <div id="pairs" class="pair-grid"></div>
 </section>
 
-
-<section class="grid" id="panes" hidden>
-<article>
-<h3>Lyrics (L2)</h3>
-<div id="l2"></div>
-</article>
-<article>
-<h3>Translation (L1)</h3>
-<div id="l1"></div>
-</article>
-</section>
 </main>
 <script>
-const fmt = s => s==null?"":String(s);
-const fmtTime = t => t==null?"": new Date(Math.floor(t*1000)).toISOString().substr(14,5);
-
-
 const $ = sel => document.querySelector(sel);
-const l2 = document.getElementById('l2');
-const l1 = document.getElementById('l1');
-
-
-const params = new URLSearchParams(location.search);
-if (params.get('title')) $('input[name=title]').value = params.get('title');
-if (params.get('artist')) $('input[name=artist]').value = params.get('artist');
-if (params.get('src')) $('input[name=src]').value = params.get('src');
-if (params.get('dest')) $('input[name=dest]').value = params.get('dest');
-
 
 const BACKEND_KEY = 'lyrilearn_backend_url';
 $('#backend').value = localStorage.getItem(BACKEND_KEY) || 'http://localhost:8000';
 
+const pairs = document.getElementById('pairs');
 
-$('#qform').addEventListener('submit', async (e) => {
-e.preventDefault();
-const fd = new FormData(e.target);
-const title = fd.get('title');
-const artist = fd.get('artist');
-const src = fd.get('src');
-const dest = fd.get('dest');
-const backend = $('#backend').value.replace(/\/$/, '');
-localStorage.setItem(BACKEND_KEY, backend);
+const fmt = s => s == null ? "" : String(s);
+const fmtTime = t => t == null ? "" : new Date(Math.floor(t*1000)).toISOString().substr(14,5);
 
+// Handle form submit -> fetch -> render
+document.getElementById('qform').addEventListener('submit', async (e) => {
+  e.preventDefault();
 
-const url = `${backend}/api/lyrics-with-translation?title=${encodeURIComponent(title)}&artist=${encodeURIComponent(artist)}&src=${encodeURIComponent(src)}&dest=${encodeURIComponent(dest)}`;
-const res = await fetch(url);
-if (!res.ok) { alert('API error'); return; }
-const data = await res.json();
-$('#panes').hidden = false;
+  const fd = new FormData(e.target);
+  const title  = fd.get('title');
+  const artist = fd.get('artist');
+  const src    = fd.get('src');   // L2
+  const dest   = fd.get('dest');  // L1
+  const wantPOS = document.getElementById('pos').checked;
 
+  const backend = $('#backend').value.replace(/\/$/, '');
+  localStorage.setItem(BACKEND_KEY, backend);
 
-l2.innerHTML = '';
-l1.innerHTML = '';
-for (const ln of data.lines) {
-const left = document.createElement('div');
-left.className = 'line';
-left.innerHTML = `<span class="time">${fmtTime(ln.t)}</span> — ${fmt(ln.l2)}`;
-const right = document.createElement('div');
-right.className = 'line';
-right.textContent = fmt(ln.l1);
-l2.appendChild(left);
-l1.appendChild(right);
-}
+  const url = `${backend}/api/lyrics-annotated?title=${encodeURIComponent(title)}&artist=${encodeURIComponent(artist)}&lang=${encodeURIComponent(src)}&dest=${encodeURIComponent(dest)}&pos=${wantPOS?1:0}`;
+
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    renderPairs(data);
+    document.getElementById('panes').hidden = false;
+  } catch (err) {
+    console.error('Fetch failed:', err);
+    alert(`Request failed: ${err.message}`);
+  }
 });
+
+function renderPairs(data) {
+  pairs.innerHTML = '';
+  for (const ln of data.lines) {
+    // Left cell (L2)
+    const left = document.createElement('div');
+    left.className = 'cell';
+    const tspan = `<span class="time">${fmtTime(ln.t)}</span> `;
+    if (ln.tokens && ln.tokens.length) {
+      const toks = ln.tokens.map(tok => {
+        const cls = tok.upos ? `upos-${tok.upos}` : '';
+        const title = `${tok.lemma||''} · ${tok.upos||''}${tok.feats?`\n${tok.feats}`:''}`;
+        return `<span class="token ${cls}" title="${title}">${tok.text}</span>`;
+      }).join(' ');
+      left.innerHTML = `${tspan}${toks}`;
+    } else {
+      left.innerHTML = `${tspan}${fmt(ln.l2)}`;
+    }
+
+    // Right cell (L1)
+    const right = document.createElement('div');
+    right.className = 'cell';
+    right.textContent = fmt(ln.l1);
+
+    // Append in order -> same grid row
+    pairs.appendChild(left);
+    pairs.appendChild(right);
+  }
+}
 </script>
 </body>
 </html>

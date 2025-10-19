@@ -55,9 +55,10 @@ async def pos_endpoint(lang: str, body: POSReq) -> dict:
 
 # ---------- Models ----------
 class Line(BaseModel):
-    t: float | None  # seconds; None if missing
-    l2: str  # source line
-    l1: str | None = None  # translated line
+    t: float | None
+    l2: str
+    l1: str | None = None
+    tokens: list[dict] | None = None  # <-- add this
 
 
 class LyricsResponse(BaseModel):
@@ -177,3 +178,20 @@ async def translate_body(body: TranslateBody) -> dict[str, str]:
     async with Translator() as tr:
         res = await tr.translate(body.text, src=body.src, dest=body.dest)
     return {"text": res.text}
+
+
+@app.get("/api/lyrics-annotated", response_model=LyricsResponse)
+async def get_lyrics_annotated(
+    title: str, artist: str, lang: str, dest: str, pos: int = 1
+) -> LyricsResponse:
+    """
+    Lyrics + translation + optional POS.
+    We already know `lang` from the user (same as translation source).
+    """
+    data = await get_lyrics_with_translation(
+        title=title, artist=artist, src=lang, dest=dest
+    )
+    if pos:
+        for ln in data.lines:
+            ln.tokens = annotate_line(ln.l2, lang)
+    return data

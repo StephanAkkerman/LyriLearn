@@ -1,0 +1,23 @@
+/* Two columns: L2 | L1 */
+.pair-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  column-gap: 1rem;
+  row-gap: 0;           /* optional */
+  align-items: start;
+}
+
+/* Each cell fills row height; allow text to wrap within column width */
+.cell {
+  padding: .15rem 0;
+  border-bottom: 1px solid #eee;
+  align-self: stretch;
+  min-width: 0;         /* IMPORTANT: lets long text wrap instead of forcing new row */
+  overflow-wrap: anywhere;
+}
+
+/* Optional: remove any mobile stacking you might have added earlier */
+@media (max-width: 640px) {
+  /* If you want to KEEP two columns even on mobile, leave this empty */
+  /* If you want stacking on mobile, put grid-template-columns: 1fr here */
+}
