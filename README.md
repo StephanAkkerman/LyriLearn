@@ -18,6 +18,9 @@ Using it is simple: provide the song title and artist, and LyriLearn will take c
 
 You can use it by running the backend with Python and heading to [http://akkerman.ai/LyriLearn/](http://akkerman.ai/LyriLearn/) or by opening the index.html file in your browser.
 
+The image below shows a screenshot of the application in action:
+![LyriLearn Screenshot](img/screenshot.png)
+
 ## Table of Contents 🗂
 
 - [Key Features](#key-features)
@@ -30,7 +33,7 @@ You can use it by running the backend with Python and heading to [http://akkerma
 ## Key Features 🔑
 
 - Translates song lyrics into your target language.
-- Synchronizes translated lyrics with music playback.
+- Synchronizes translated lyrics with music playback, hovering over words shows their translation.
 - Provides part-of-speech tagging for better understanding of lyrics.
 - User-friendly interface for easy navigation.
 
