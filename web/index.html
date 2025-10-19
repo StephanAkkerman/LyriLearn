@@ -40,23 +40,32 @@
     </form>
   </section>
 
+  <section id="legend" class="legend"></section>
+
   <section id="panes" hidden>
   <div id="pairs" class="pair-grid"></div>
 </section>
 
 </main>
 <script>
-const $ = sel => document.querySelector(sel);
-
+const $ = s => document.querySelector(s);
 const BACKEND_KEY = 'lyrilearn_backend_url';
 $('#backend').value = localStorage.getItem(BACKEND_KEY) || 'http://localhost:8000';
 
 const pairs = document.getElementById('pairs');
+const legendBox = document.getElementById('legend');
 
 const fmt = s => s == null ? "" : String(s);
 const fmtTime = t => t == null ? "" : new Date(Math.floor(t*1000)).toISOString().substr(14,5);
 
-// Handle form submit -> fetch -> render
+// Human-friendly labels for UD tags
+const UPOS_LABEL = {
+  ADJ:'Adjective', ADP:'Adposition', ADV:'Adverb', AUX:'Auxiliary', CCONJ:'Coordinating conj.',
+  DET:'Determiner', INTJ:'Interjection', NOUN:'Noun', NUM:'Numeral', PART:'Particle',
+  PRON:'Pronoun', PROPN:'Proper noun', PUNCT:'Punctuation', SCONJ:'Subordinating conj.',
+  SYM:'Symbol', VERB:'Verb', X:'Other'
+};
+
 document.getElementById('qform').addEventListener('submit', async (e) => {
   e.preventDefault();
 
@@ -76,7 +85,7 @@ document.getElementById('qform').addEventListener('submit', async (e) => {
     const res = await fetch(url);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
-    renderPairs(data);
+    renderPairsAndLegend(data);
     document.getElementById('panes').hidden = false;
   } catch (err) {
     console.error('Fetch failed:', err);
@@ -84,21 +93,26 @@ document.getElementById('qform').addEventListener('submit', async (e) => {
   }
 });
 
-function renderPairs(data) {
+function renderPairsAndLegend(data) {
   pairs.innerHTML = '';
+  const tagsSeen = new Set();
+
   for (const ln of data.lines) {
-    // Left cell (L2)
+    // Left cell (L2) with per-token coloring
     const left = document.createElement('div');
     left.className = 'cell';
     const tspan = `<span class="time">${fmtTime(ln.t)}</span> `;
     if (ln.tokens && ln.tokens.length) {
       const toks = ln.tokens.map(tok => {
-        const cls = tok.upos ? `upos-${tok.upos}` : '';
-        const title = `${tok.lemma||''} · ${tok.upos||''}${tok.feats?`\n${tok.feats}`:''}`;
+        const upos = (tok.upos || 'X').toUpperCase();
+        tagsSeen.add(upos);
+        const cls = `upos-${upos}`;
+        const title = `${tok.lemma||''} · ${upos}${tok.feats?`\n${tok.feats}`:''}`;
         return `<span class="token ${cls}" title="${title}">${tok.text}</span>`;
       }).join(' ');
       left.innerHTML = `${tspan}${toks}`;
     } else {
+      // Fallback: no POS — render plain line (or tokenize client-side if you prefer)
       left.innerHTML = `${tspan}${fmt(ln.l2)}`;
     }
 
@@ -107,10 +121,24 @@ function renderPairs(data) {
     right.className = 'cell';
     right.textContent = fmt(ln.l1);
 
-    // Append in order -> same grid row
     pairs.appendChild(left);
     pairs.appendChild(right);
   }
+
+  buildLegend(tagsSeen);
+}
+
+function buildLegend(tagsSeen) {
+  // Build chips only for tags present, in a consistent order
+  const ORDER = ['NOUN','PROPN','VERB','AUX','ADJ','ADV','PRON','DET','ADP','CCONJ','SCONJ','NUM','PART','INTJ','SYM','PUNCT','X'];
+  const tags = ORDER.filter(t => tagsSeen.has(t));
+  if (!tags.length) { legendBox.innerHTML = ''; return; }
+
+  legendBox.innerHTML = tags.map(t => {
+    const label = UPOS_LABEL[t] || t;
+    // Use a small swatch with the same CSS class color
+    return `<span class="chip"><span class="swatch upos-${t}"></span>${label}</span>`;
+  }).join('');
 }
 </script>
 </body>

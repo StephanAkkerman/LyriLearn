@@ -16,6 +16,31 @@
   overflow-wrap: anywhere;
 }
 
+/* Full UD tag palette (pastel, readable) */
+.upos-ADJ   { background:#fff3cd }  /* Adjective */
+.upos-ADP   { background:#e2f0d9 }  /* Adposition (pre/postposition) */
+.upos-ADV   { background:#ede7f6 }
+.upos-AUX   { background:#e0f7fa }
+.upos-CCONJ { background:#fce4ec }
+.upos-DET   { background:#f3e5f5 }
+.upos-INTJ  { background:#ffe0b2 }
+.upos-NOUN  { background:#e6f4ff }
+.upos-NUM   { background:#f1f8e9 }
+.upos-PART  { background:#f8bbd0 }
+.upos-PRON  { background:#e8f5e9 }
+.upos-PROPN { background:#dcedc8 }
+.upos-PUNCT { background:#eeeeee }
+.upos-SCONJ { background:#f0f4c3 }
+.upos-SYM   { background:#ffecb3 }
+.upos-VERB  { background:#e8ffe6 }
+.upos-X     { background:#f5f5f5 }  /* Other/unknown */
+
+/* Legend chips */
+.legend { display:flex; flex-wrap:wrap; gap:.4rem; margin:.5rem 0 1rem }
+.legend .chip { font-size:.85em; border:1px solid #ddd; border-radius:.5rem; padding:.15rem .4rem }
+.legend .chip .swatch { display:inline-block; width:.85em; height:.85em; border-radius:.2em; margin-right:.35em; vertical-align:-0.15em; }
+
+
 /* Optional: remove any mobile stacking you might have added earlier */
 @media (max-width: 640px) {
   /* If you want to KEEP two columns even on mobile, leave this empty */
