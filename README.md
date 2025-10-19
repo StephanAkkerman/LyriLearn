@@ -36,6 +36,7 @@ The image below shows a screenshot of the application in action:
 - Synchronizes translated lyrics with music playback, hovering over words shows their translation.
 - Provides part-of-speech tagging for better understanding of lyrics.
 - User-friendly interface for easy navigation.
+- Supports many languages through Google Translate (over 100+ languages).
 
 ## Installation ⚙️
 <!-- Adjust the link of the second command to your own repo -->
