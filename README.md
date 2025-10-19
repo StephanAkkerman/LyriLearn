@@ -30,7 +30,7 @@ The image below shows a screenshot of the application in action:
 - [Contributing](#contributing)
 - [License](#license)
 
-## Key Features 🔑z
+## Key Features 🔑
 
 - Translates song lyrics into your target language.
 - Synchronizes translated lyrics with music playback, hovering over words shows their translation.
