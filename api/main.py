@@ -18,6 +18,7 @@ from googletrans import Translator
 from pydantic import BaseModel
 
 from .align import align_tokens
+from .languages import get_languages
 from .pos import annotate_line, tokenize_line
 
 # ---------- Config ----------
@@ -217,3 +218,11 @@ async def get_lyrics_annotated(
             else:
                 ln.groups = []
     return data
+
+
+@app.get("/api/languages")
+def languages() -> list[dict]:
+    """
+    Return languages supported by googletrans with optional POS info.
+    """
+    return get_languages()
