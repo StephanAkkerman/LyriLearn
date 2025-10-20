@@ -78,7 +78,7 @@ document.getElementById('qform').addEventListener('submit', async (e) => {
   const artist = fd.get('artist');
   const src    = fd.get('src');   // L2
   const dest   = fd.get('dest');  // L1
-  const wantPOS = document.getElementById('pos').checked;
+  const wantPOS = posWanted();
 
   const backend = $('#backend').value.replace(/\/$/, '');
   localStorage.setItem(BACKEND_KEY, backend);
@@ -190,38 +190,41 @@ async function loadLanguages() {
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const langs = await res.json();
 
-    // Helper to add options
     function fill(select, defaultCode) {
       select.innerHTML = '';
       for (const lang of langs) {
         const opt = document.createElement('option');
-        opt.value = lang.code;            // pass googletrans code to backend
+        opt.value = lang.code;  // googletrans code the backend expects for translation
         opt.textContent = lang.name + (lang.pos_supported ? '' : ' (no POS)');
-        opt.dataset.posCode = lang.pos_code;   // for UI if you need it later
+        opt.dataset.posCode = lang.pos_code;
         opt.dataset.posSupported = lang.pos_supported ? '1' : '0';
+        opt.dataset.rtl = lang.rtl ? '1' : '0';
         select.appendChild(opt);
       }
-      if (defaultCode) {
-        select.value = defaultCode;
-      }
+      if (defaultCode) select.value = defaultCode;
     }
 
     // Reasonable defaults
-    fill(srcSelect,  'id');   // Indonesian
-    fill(destSelect, 'en');   // English
+    fill(srcSelect,  'id'); // Indonesian
+    fill(destSelect, 'en'); // English
   } catch (e) {
     console.error('Failed to load languages:', e);
-    // Fallback minimal set
-    srcSelect.innerHTML  = `<option value="en">English</option><option value="id">Indonesian</option>`;
+    // Simple fallback
+    srcSelect.innerHTML  = `<option value="en">English</option><option value="id" selected>Indonesian</option>`;
     destSelect.innerHTML = `<option value="en" selected>English</option><option value="nl">Dutch</option>`;
   }
 }
 
-// Call once at startup (after we know backend URL input value)
+// load on startup and when backend URL changes (handy in dev)
 loadLanguages();
-
-// If user changes backend URL, reload the list (useful in dev)
 document.getElementById('backend').addEventListener('change', loadLanguages);
+
+// In your submit handler, you can auto-disable POS if unsupported:
+function posWanted() {
+  const o = srcSelect.options[srcSelect.selectedIndex];
+  const supported = o?.dataset?.posSupported === '1';
+  return supported && document.getElementById('pos').checked;
+}
 </script>
 </body>
 </html>

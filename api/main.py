@@ -22,7 +22,7 @@ from .languages import get_languages
 from .pos import annotate_line, tokenize_line
 
 # ---------- Config ----------
-FRONTEND_ORIGIN = os.getenv("FRONTEND_ORIGIN", "*")  # e.g., https://<user>.github.io
+FRONTEND_ORIGIN = os.getenv("FRONTEND_ORIGIN", "*")
 
 
 app = FastAPI(title="LyriLearn Minimal API")

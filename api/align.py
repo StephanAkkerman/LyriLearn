@@ -2,8 +2,6 @@
 Word/phrase alignment using SimAlign (mBERT) with version-agnostic method handling.
 """
 
-from __future__ import annotations
-
 from functools import lru_cache
 from typing import Dict, Iterable, List, Set, Tuple
 

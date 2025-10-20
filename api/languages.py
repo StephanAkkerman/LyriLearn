@@ -1,5 +1,12 @@
 """
-Expose languages supported by googletrans, plus best-effort POS (Stanza) support info.
+Expose languages supported by googletrans, with POS support derived from
+Stanza's official language registry.
+
+- `code`      : googletrans code (what your frontend submits to the API)
+- `name`      : human-readable language name (Title Case)
+- `pos_code`  : best Stanza code candidate for POS tagging
+- `pos_supported`: whether Stanza likely has a model for that code
+- `rtl`       : right-to-left script hint (from Stanza constants)
 """
 
 from __future__ import annotations
@@ -8,102 +15,79 @@ from typing import Dict, List
 
 from googletrans import LANGUAGES as GT_LANGUAGES
 
-# Keep aliases in sync with api/pos.py
-STANZA_ALIASES = {
-    "jp": "ja",
-    "zh-cn": "zh",
-    "zh-tw": "zh-hant",
-    "pt-br": "pt",
+# Import Stanza language constants (this does NOT download any models)
+from stanza.models.common.constant import (
+    RIGHT_TO_LEFT,  # set of stanza codes that are RTL
+    lcode2lang,  # dict: stanza_code -> language name
+    three_to_two_letters,  # dict: 'sme' -> 'se' etc.
+)
+
+# Map googletrans quirks -> Stanza codes
+# (GT uses some BCP-47-ish tags and a few legacy codes)
+GT_TO_STANZA_OVERRIDES: Dict[str, str] = {
+    "zh-cn": "zh-hans",  # Chinese (Simplified)
+    "zh-tw": "zh-hant",  # Chinese (Traditional)
+    "pt-br": "pt",  # Portuguese (treat as 'pt' for POS)
     "pt-pt": "pt",
-}
-
-# A conservative list of Stanza language codes known to have models.
-# (This avoids importing stanza at import time; we don't want it to auto-download here.)
-# Source: https://stanfordnlp.github.io/stanza/available_models.html (trimmed to common ones)
-STANZA_LANGS = {
-    "af",
-    "ar",
-    "bg",
-    "ca",
-    "cs",
-    "da",
-    "de",
-    "el",
-    "en",
-    "es",
-    "et",
-    "eu",
-    "fa",
-    "fi",
-    "fr",
-    "ga",
-    "gl",
-    "he",
-    "hi",
-    "hr",
-    "hu",
-    "hy",
-    "id",
-    "it",
-    "ja",
-    "kk",
-    "ko",
-    "la",
-    "lt",
-    "lv",
-    "mr",
-    "nl",
-    "no",
-    "pl",
-    "pt",
-    "ro",
-    "ru",
-    "sk",
-    "sl",
-    "sr",
-    "sv",
-    "ta",
-    "te",
-    "th",
-    "tr",
-    "uk",
-    "ur",
-    "vi",
-    "zh",
-    "zh-hant",
+    "jw": "jv",  # old GT alias -> Javanese
+    "nb": "nb",  # Bokmaal exists in Stanza mapping
+    "no": "no",  # Norwegian (general)
 }
 
 
-def _normalize_pos_code(code: str) -> str:
-    code = code.lower()
-    return STANZA_ALIASES.get(code, code)
+def _to_stanza_code(gt_code: str) -> str:
+    """
+    Convert a googletrans language code to the best Stanza language code guess.
+    Strategy:
+      1) explicit overrides
+      2) exact match in lcode2lang
+      3) reduce BCP-47 like 'xx-YY' -> 'xx' if present in lcode2lang
+      4) three_to_two_letters mapping (rare)
+      5) fallback to lowercased gt_code (may not be supported)
+    """
+    code = gt_code.lower()
+
+    # 1) explicit overrides
+    if code in GT_TO_STANZA_OVERRIDES:
+        return GT_TO_STANZA_OVERRIDES[code]
+
+    # 2) exact stanza code
+    if code in lcode2lang:
+        return code
+
+    # 3) reduce region/script subtags: e.g., "es-419" -> "es"
+    if "-" in code:
+        base = code.split("-", 1)[0]
+        if base in lcode2lang:
+            return base
+
+    # 4) map some 3->2 letter codes if GT supplies a 3-letter code
+    if code in three_to_two_letters:
+        mapped = three_to_two_letters[code]
+        if mapped in lcode2lang:
+            return mapped
+
+    # 5) fallback
+    return code
 
 
 def get_languages() -> List[Dict[str, str | bool]]:
     """
-    Build a list of language entries for the UI.
-
-    Returns
-    -------
-    list of dict
-        Each dict has:
-        - code: str           # googletrans code to pass for translation
-        - name: str           # human-readable name
-        - pos_code: str       # normalized code we'd use for Stanza
-        - pos_supported: bool # best-effort flag if we likely have a Stanza model
+    Build a sorted list of language entries for the UI.
     """
     items: List[Dict[str, str | bool]] = []
-    for code, name in GT_LANGUAGES.items():
-        pos_code = _normalize_pos_code(code)
-        pos_supported = pos_code in STANZA_LANGS
+    for gt_code, name in GT_LANGUAGES.items():
+        pos_code = _to_stanza_code(gt_code)
+        pos_supported = pos_code in lcode2lang
+        rtl = pos_code in RIGHT_TO_LEFT
         items.append(
             {
-                "code": code,
+                "code": gt_code,  # submit this back to your API
                 "name": name.title(),
-                "pos_code": pos_code,
-                "pos_supported": pos_supported,
+                "pos_code": pos_code,  # FYI for the UI (not required to submit)
+                "pos_supported": pos_supported,  # show "(no POS)" if False
+                "rtl": rtl,  # optional: can flip direction in UI
             }
         )
-    # Sort alphabetically by name
     items.sort(key=lambda x: str(x["name"]))
     return items
