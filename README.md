@@ -53,6 +53,7 @@ or
 pip install git+https://github.com/StephanAkkerman/LyriLearn.git
 ```
 
+## Usage ⌨️
 After installing the required packages, you can start the FastAPI backend server by running:
 
 ```bash
@@ -60,8 +61,6 @@ uvicorn api.main:app --reload
 ```
 
 Then open your browser and navigate to [http://akkerman.ai/LyriLearn/](http://akkerman.ai/LyriLearn/) or by opening the index.html file in your browser, located under `/docs`.
-
-## Usage ⌨️
 
 ## Citation ✍️
 <!-- Be sure to adjust everything here so it matches your name and repo -->
